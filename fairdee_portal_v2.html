@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FairDee — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f7fa; --white:#ffffff; --border:#e4e8ef; --border-light:#f0f3f7;
+  --text:#1a2332; --text-muted:#6b7897; --text-dim:#a8b3c8;
+  --accent:#2563eb; --accent-light:#eff4ff;
+  --green:#16a34a; --green-bg:#f0fdf4; --green-border:#bbf7d0;
+  --yellow:#d97706; --yellow-bg:#fffbeb; --yellow-border:#fde68a;
+  --red:#dc2626; --red-bg:#fef2f2; --red-border:#fecaca;
+  --purple:#7c3aed; --purple-bg:#f5f3ff;
+  --orange:#ea580c; --orange-bg:#fff7ed;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:0 20px 48px rgba(0,0,0,0.18);
+  --radius:10px; --radius-sm:6px;
+}
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(15,23,42,0.5); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center;
+  animation:overlayIn 0.2s ease;
+}
+.modal-overlay.open { display:flex; }
+@keyframes overlayIn { from{opacity:0} to{opacity:1} }
+
+.modal-box {
+  background:var(--white); border-radius:14px;
+  box-shadow:var(--shadow-lg); width:100%; max-width:480px;
+  margin:20px; overflow:hidden;
+  animation:modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.92) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+.modal-header {
+  padding:18px 22px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+}
+.modal-header-left { display:flex; align-items:center; gap:10px; }
+.modal-icon-wrap {
+  width:38px; height:38px; border-radius:10px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.modal-icon-warn { background:#fef3c7; }
+.modal-icon-confirm { background:var(--accent-light); }
+.modal-title { font-size:15px; font-weight:700; color:var(--text); line-height:1.3; }
+.modal-close {
+  width:28px; height:28px; border-radius:6px; border:none;
+  background:var(--bg); color:var(--text-muted); font-size:16px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition:all 0.15s;
+}
+.modal-close:hover { background:var(--red-bg); color:var(--red); }
+
+.modal-body { padding:16px 22px; }
+.modal-desc { font-size:13px; color:var(--text-muted); line-height:1.65; margin-bottom:16px; }
+
+/* Override reason modal specifics */
+.modal-warn-banner {
+  display:flex; align-items:flex-start; gap:10px;
+  background:var(--yellow-bg); border:1px solid var(--yellow-border);
+  border-radius:8px; padding:11px 14px; margin-bottom:16px; font-size:12.5px; color:var(--yellow);
+}
+.modal-label { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:6px; }
+.modal-label span { color:var(--red); }
+.modal-textarea {
+  width:100%; min-height:90px; padding:10px 12px;
+  border:1.5px solid var(--border); border-radius:8px;
+  font-size:13px; font-family:'Sarabun',sans-serif; color:var(--text);
+  background:var(--bg); resize:vertical; outline:none;
+  transition:border-color 0.15s, box-shadow 0.15s;
+}
+.modal-textarea:focus { border-color:var(--accent); background:var(--white); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+.modal-textarea.error { border-color:var(--red); box-shadow:0 0 0 3px rgba(220,38,38,0.1); }
+.modal-error-msg { font-size:11.5px; color:var(--red); margin-top:5px; display:none; }
+.modal-error-msg.show { display:block; }
+
+.modal-footer {
+  padding:14px 22px 18px;
+  display:flex; justify-content:flex-end; gap:8px;
+}
+.modal-btn {
+  padding:8px 20px; border-radius:7px; font-size:13px; font-weight:700;
+  cursor:pointer; border:none; font-family:'Sarabun',sans-serif; transition:all 0.15s;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.modal-btn-primary-approve { background:var(--green); color:white; box-shadow:0 2px 6px rgba(22,163,74,0.3); }
+.modal-btn-primary-approve:hover { background:#15803d; transform:translateY(-1px); }
+.modal-btn-primary-reject { background:var(--red); color:white; box-shadow:0 2px 6px rgba(220,38,38,0.3); }
+.modal-btn-primary-reject:hover { background:#b91c1c; transform:translateY(-1px); }
+.modal-btn-secondary {
+  background:var(--white); color:var(--text-muted);
+  border:1.5px solid var(--border);
+}
+.modal-btn-secondary:hover { background:var(--bg); color:var(--text); }
+
+/* Conflict badge in modal */
+.modal-conflict-row {
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 14px;
+}
+.conflict-ai { font-size:12px; color:var(--text-muted); }
+.conflict-arrow { color:var(--text-dim); font-size:16px; }
+.conflict-user { font-size:12px; font-weight:700; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.page{display:none}
+.page.active{display:block;animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* TOPBAR */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm);position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-logo{display:flex;align-items:center;gap:8px}
+.logo-mark{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:white}
+.logo-text{font-size:15px;font-weight:700;color:var(--text)}
+.topbar-divider{width:1px;height:20px;background:var(--border);margin:0 6px}
+.topbar-title{font-size:14px;font-weight:600;color:var(--text-muted)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-notif{width:34px;height:34px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:15px;transition:all 0.15s}
+.topbar-notif:hover{background:var(--accent-light);border-color:var(--accent)}
+.notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--white)}
+.topbar-settings{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text-muted);transition:all 0.15s}
+.topbar-settings:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+.avatar-chip{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+
+/* MAIN */
+.main-content{padding:24px 28px;max-width:1600px;margin:0 auto}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;transition:box-shadow 0.2s,transform 0.2s}
+.stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.stat-card:nth-child(1)::after{background:var(--accent)}
+.stat-card:nth-child(2)::after{background:var(--green)}
+.stat-card:nth-child(3)::after{background:var(--yellow)}
+.stat-card:nth-child(4)::after{background:var(--red)}
+.stat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.stat-icon-wrap{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.ic-blue{background:var(--accent-light)}.ic-green{background:var(--green-bg)}.ic-yellow{background:var(--yellow-bg)}.ic-red{background:var(--red-bg)}
+.stat-delta{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;font-family:'IBM Plex Mono',monospace}
+.d-up{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.d-down{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.d-warn{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.stat-val{font-size:30px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;margin-bottom:3px}
+.sv-blue{color:var(--accent)}.sv-green{color:var(--green)}.sv-yellow{color:var(--yellow)}.sv-red{color:var(--red)}
+.stat-label{font-size:12.5px;font-weight:600;color:var(--text-muted)}
+.stat-sub{font-size:11px;color:var(--text-dim);margin-top:6px;padding-top:8px;border-top:1px solid var(--border-light)}
+
+/* TABLE CARD */
+.table-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
+.table-card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.table-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.count-chip{font-size:11px;font-family:'IBM Plex Mono',monospace;background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe;padding:1px 9px;border-radius:20px;font-weight:600}
+.export-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all 0.15s;font-family:'Sarabun',sans-serif}
+.export-btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+
+/* FILTER BAR */
+.filter-bar{padding:12px 20px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-wrap{position:relative;min-width:220px;flex:1;max-width:280px}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:13px}
+.search-input{width:100%;padding:7px 10px 7px 32px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:'Sarabun',sans-serif;outline:none;transition:border-color 0.15s,box-shadow 0.15s}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+.search-input::placeholder{color:var(--text-dim)}
+.date-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12.5px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;white-space:nowrap;font-family:'Sarabun',sans-serif}
+.date-btn:hover{border-color:var(--accent);color:var(--accent)}
+.fselect{padding:7px 10px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12.5px;font-family:'Sarabun',sans-serif;outline:none;cursor:pointer;transition:border-color 0.15s;min-width:130px}
+.fselect:focus{border-color:var(--accent)}
+.tabs-group{display:flex;gap:4px;margin-left:auto}
+.tab-pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--text-muted);background:var(--white);transition:all 0.15s;white-space:nowrap;font-family:'Sarabun',sans-serif}
+.tab-pill:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+.tab-pill.active{background:var(--accent);color:white;border-color:var(--accent);box-shadow:0 2px 6px rgba(37,99,235,0.3)}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--bg)}
+thead th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid var(--border);white-space:nowrap}
+th:first-child,td:first-child{padding-left:20px}
+th:last-child,td:last-child{padding-right:20px}
+tbody tr{border-bottom:1px solid var(--border-light);transition:background 0.12s;cursor:pointer}
+tbody tr:hover{background:#f0f7ff}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:11px 14px;vertical-align:middle}
+tr.row-breach{border-left:3px solid var(--red)}
+tr.row-warn{border-left:3px solid var(--yellow)}
+tr.row-ok{border-left:3px solid transparent}
+
+/* CELLS */
+.job-id{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--accent)}
+.date-main{font-size:13px;font-weight:500;color:var(--text)}
+.date-time{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+.agent-id{font-size:12px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:5px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-new{background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe}
+.b-renew{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.b-transfer{background:var(--orange-bg);color:var(--orange);border:1px solid #fed7aa}
+.ins{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;font-family:'IBM Plex Mono',monospace}
+.ins-1{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.ins-2{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.ins-3{background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe}
+.ins-prb{background:var(--purple-bg);color:var(--purple);border:1px solid #ddd6fe}
+.company-name{font-size:12.5px;color:var(--text);font-weight:500}
+
+/* AI */
+.ai-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.ai-spark{font-size:9px}
+.ai-approve{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.ai-reject{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.ai-score{font-size:10px;font-family:'IBM Plex Mono',monospace;opacity:0.75}
+
+/* SLA DATE CELL */
+.sla-date-cell{display:flex;flex-direction:column;gap:2px}
+.sla-date-main{font-size:12.5px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+.sla-date-sub{font-size:10.5px;color:var(--text-muted)}
+.sla-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:600;white-space:nowrap;margin-top:2px}
+.sla-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.sla-warn{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.sla-breach{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+/* STATUS */
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;font-size:12px;font-weight:600;white-space:nowrap}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.s-wait{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.s-wait .sdot{background:#2563eb;animation:blink 1.4s infinite}
+.s-approve{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.s-approve .sdot{background:var(--green)}
+.s-reject{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.s-reject .sdot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+
+/* APPROVER / ACTION DATE */
+.approver-cell{display:flex;align-items:center;gap:7px}
+.mini-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0}
+.approver-name{font-size:12px;color:var(--text-muted);font-weight:500}
+.no-approver{font-size:12px;color:var(--text-dim);font-style:italic}
+.action-date{font-size:10.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+
+/* TABLE FOOTER */
+.table-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;background:var(--bg)}
+.pagination{display:flex;gap:3px}
+.pg-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text-muted);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:'IBM Plex Mono',monospace}
+.pg-btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+.pg-btn.active{background:var(--accent);color:white;border-color:var(--accent)}
+.page-info{font-size:12px;color:var(--text-muted);margin-right:12px}
+
+/* ===== DETAIL PAGE ===== */
+#detail-page .main-content{max-width:1200px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);margin-bottom:18px}
+.bc-link{color:var(--accent);cursor:pointer;font-weight:500}
+.bc-link:hover{text-decoration:underline}
+.bc-sep{color:var(--text-dim)}
+.bc-cur{color:var(--text);font-weight:600}
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+.detail-id{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--accent)}
+.detail-meta{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
+.detail-actions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Sarabun',sans-serif;transition:all 0.15s;white-space:nowrap}
+.btn-approve{background:var(--green);color:white;box-shadow:0 2px 6px rgba(22,163,74,0.3)}
+.btn-approve:hover{background:#15803d;transform:translateY(-1px)}
+.btn-reject{background:var(--red-bg);color:var(--red);border:1.5px solid var(--red-border)}
+.btn-reject:hover{background:var(--red);color:white}
+.btn-assign{background:var(--accent-light);color:var(--accent);border:1.5px solid #bfdbfe}
+.btn-assign:hover{background:var(--accent);color:white}
+.btn-back{background:var(--bg);color:var(--text-muted);border:1px solid var(--border)}
+.btn-back:hover{background:var(--border-light);color:var(--text)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.detail-grid-2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+.detail-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
+.dc-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dc-title{font-size:12.5px;font-weight:700;color:var(--text)}
+.dc-icon{font-size:14px}
+.dc-body{padding:16px 18px}
+.info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border-light)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:12px;color:var(--text-muted);font-weight:500;flex-shrink:0;margin-right:10px}
+.info-val{font-size:13px;color:var(--text);font-weight:600;text-align:right}
+.ai-section{border:2px solid;border-radius:var(--radius);padding:16px 18px}
+.ai-approve-section{border-color:var(--green-border);background:var(--green-bg)}
+.ai-reject-section{border-color:var(--red-border);background:var(--red-bg)}
+.ai-verdict{font-size:15px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ai-reason-list{font-size:12px;color:var(--text-muted);padding-left:14px}
+.ai-reason-list li{margin-bottom:3px}
+.confidence-bar{margin-top:10px}
+.conf-label{font-size:11px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between}
+.conf-track{height:8px;background:var(--border);border-radius:10px;overflow:hidden}
+.conf-fill{height:100%;border-radius:10px;transition:width 1s ease}
+.doc-list{display:flex;flex-direction:column;gap:8px}
+.doc-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:7px;border:1px solid var(--border);background:var(--bg)}
+.doc-icon{font-size:20px}
+.doc-info{flex:1}
+.doc-name{font-size:12.5px;font-weight:600;color:var(--text)}
+.doc-size{font-size:11px;color:var(--text-dim)}
+.doc-status{font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px}
+.ds-ok{background:var(--green-bg);color:var(--green)}
+.ds-missing{background:var(--red-bg);color:var(--red)}
+.timeline{padding:4px 0}
+.tl-item{display:flex;gap:12px;padding-bottom:16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:10px;flex-shrink:0;margin-top:3px}
+.tl-dot2{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tl-line2{width:2px;flex:1;background:var(--border);margin-top:4px;min-height:20px}
+.tl-item:last-child .tl-line2{display:none}
+.tl-content{flex:1}
+.tl-title2{font-size:12.5px;font-weight:600;color:var(--text)}
+.tl-sub2{font-size:11px;color:var(--text-muted);margin-top:2px}
+.tl-time{font-size:10px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.comment-box{border:1px solid var(--border);border-radius:7px;background:var(--bg);padding:10px 12px;font-size:13px;color:var(--text);resize:vertical;min-height:70px;width:100%;font-family:'Sarabun',sans-serif;outline:none;transition:border-color 0.15s}
+.comment-box:focus{border-color:var(--accent);background:var(--white)}
+.sla-progress-wrap{margin:10px 0}
+.sla-track{height:10px;background:var(--border);border-radius:10px;overflow:hidden}
+.sla-fill{height:100%;border-radius:10px}
+.sla-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.agent-block{display:flex;align-items:center;gap:10px;padding:10px 0}
+.agent-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;flex-shrink:0}
+.agent-name{font-size:13px;font-weight:600;color:var(--text)}
+.agent-level{font-size:11px;color:var(--text-muted)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: DASHBOARD -->
+<div id="dashboard-page" class="page active">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><div class="logo-mark">🛡</div><span class="logo-text">FairDee</span></div>
+      <div class="topbar-divider"></div>
+      <span class="topbar-title">Team A — อนุมัติงานใหม่</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-notif">🔔<div class="notif-dot"></div></div>
+      <div class="avatar-chip">อ</div>
+      <div class="topbar-settings">⚙ ตั้งค่า</div>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-header"><div class="stat-icon-wrap ic-blue">📋</div><span class="stat-delta d-up">↑ 12%</span></div>
+        <div class="stat-val sv-blue">47</div><div class="stat-label">งานส่งเข้ามาวันนี้</div>
+        <div class="stat-sub">ทั้งเดือน เม.ย.: 312 งาน</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header"><div class="stat-icon-wrap ic-green">✅</div><span class="stat-delta d-up">83%</span></div>
+        <div class="stat-val sv-green">39</div><div class="stat-label">อนุมัติแล้ว</div>
+        <div class="stat-sub">เฉลี่ย 48 นาที/งาน</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header"><div class="stat-icon-wrap ic-yellow">⏳</div><span class="stat-delta d-warn">รอดำเนินการ</span></div>
+        <div class="stat-val sv-yellow">8</div><div class="stat-label">รอตรวจสอบ</div>
+        <div class="stat-sub">ล่าสุด: 22 นาทีที่แล้ว</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header"><div class="stat-icon-wrap ic-red">🔴</div><span class="stat-delta d-down">SLA 7 วันทำการ</span></div>
+        <div class="stat-val sv-red">3</div><div class="stat-label">เกิน SLA</div>
+        <div class="stat-sub">ต้องดำเนินการด่วน</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-title">งานที่ Agent ส่งเข้ามา <span class="count-chip">47 รายการ</span></div>
+        <button class="export-btn">↓ Export CSV</button>
+      </div>
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" type="text" placeholder="เลขงาน / ชื่อลูกค้า / ทะเบียน...">
+        </div>
+        <div class="date-btn">📅 17 เม.ย. — 18 เม.ย. 2566 ▾</div>
+        <select class="fselect"><option>ประเภทงานทั้งหมด</option><option>งานใหม่</option><option>ต่ออายุ</option><option>โอนโค้ด</option></select>
+        <select class="fselect"><option>ประเภทประกัน</option><option>ชั้น 1</option><option>2+</option><option>3+</option><option>พ.ร.บ.</option></select>
+        <select class="fselect"><option>บริษัทประกันทั้งหมด</option><option>กรุงเทพประกันภัย</option><option>วิริยะ</option><option>ทิพยประกันภัย</option></select>
+        <div class="tabs-group">
+          <div class="tab-pill active">ทั้งหมด</div>
+          <div class="tab-pill">รอตรวจสอบ</div>
+          <div class="tab-pill">อนุมัติ</div>
+          <div class="tab-pill">ปฏิเสธ</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่ส่งงาน</th>
+              <th>เลขที่งาน</th>
+              <th>Agent ID</th>
+              <th>ประเภทงาน</th>
+              <th>ประเภทประกัน</th>
+              <th>บริษัทประกัน</th>
+              <th>AI Pre-screen</th>
+              <th>SLA ครบกำหนด</th>
+              <th>สถานะ SLA</th>
+              <th>สถานะ</th>
+              <th>อนุมัติโดย</th>
+              <th>ดำเนินการเมื่อ</th>
+            </tr>
+          </thead>
+          <tbody id="job-table-body"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span class="page-info">แสดง 8 จาก 47 รายการ</span>
+        <div class="pagination">
+          <div class="pg-btn">‹</div>
+          <div class="pg-btn active">1</div>
+          <div class="pg-btn">2</div>
+          <div class="pg-btn">3</div>
+          <div class="pg-btn">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: DETAIL -->
+<div id="detail-page" class="page">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><div class="logo-mark">🛡</div><span class="logo-text">FairDee</span></div>
+      <div class="topbar-divider"></div>
+      <span class="topbar-title" id="detail-topbar-title">รายละเอียดงาน</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-notif">🔔<div class="notif-dot"></div></div>
+      <div class="avatar-chip">อ</div>
+      <div class="topbar-settings">⚙ ตั้งค่า</div>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="breadcrumb">
+      <span class="bc-link" onclick="goBack()">Dashboard</span><span class="bc-sep">/</span>
+      <span class="bc-link" onclick="goBack()">งานที่ Agent ส่งเข้ามา</span><span class="bc-sep">/</span>
+      <span class="bc-cur" id="detail-bc-id"></span>
+    </div>
+    <div class="detail-header">
+      <div><div class="detail-id" id="d-jobid"></div><div class="detail-meta" id="d-meta"></div></div>
+      <div class="detail-actions" id="d-actions"></div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <div class="dc-header"><span class="dc-icon">📋</span><span class="dc-title">ข้อมูลงาน</span></div>
+        <div class="dc-body">
+          <div class="info-row"><span class="info-label">เลขที่งาน</span><span class="info-val" id="d-num" style="font-family:'IBM Plex Mono',monospace;color:var(--accent);"></span></div>
+          <div class="info-row"><span class="info-label">วันที่ส่งงาน</span><span class="info-val" id="d-senddate"></span></div>
+          <div class="info-row"><span class="info-label">ประเภทงาน</span><span class="info-val" id="d-worktype"></span></div>
+          <div class="info-row"><span class="info-label">ประเภทประกัน</span><span class="info-val" id="d-instype"></span></div>
+          <div class="info-row"><span class="info-label">บริษัทประกัน</span><span class="info-val" id="d-company"></span></div>
+          <div class="info-row"><span class="info-label">เบี้ยประกัน</span><span class="info-val" style="color:var(--green);font-family:'IBM Plex Mono',monospace;">฿7,500</span></div>
+        </div>
+      </div>
+      <div class="detail-card">
+        <div class="dc-header"><span class="dc-icon">👤</span><span class="dc-title">ข้อมูลลูกค้า</span></div>
+        <div class="dc-body">
+          <div class="info-row"><span class="info-label">ชื่อ-นามสกุล</span><span class="info-val">นายวิชัย ประสิทธิ์</span></div>
+          <div class="info-row"><span class="info-label">เลขบัตรปชช.</span><span class="info-val" style="font-family:'IBM Plex Mono',monospace;">1-1001-00001-xx-x</span></div>
+          <div class="info-row"><span class="info-label">ทะเบียนรถ</span><span class="info-val" style="font-family:'IBM Plex Mono',monospace;">กข-1234 กทม.</span></div>
+          <div class="info-row"><span class="info-label">ยี่ห้อ/รุ่น</span><span class="info-val">Toyota Camry 2021</span></div>
+          <div class="info-row"><span class="info-label">เลขตัวถัง</span><span class="info-val" style="font-family:'IBM Plex Mono',monospace;">MH3SG4120P…</span></div>
+          <div class="info-row"><span class="info-label">เบอร์โทร</span><span class="info-val">08x-xxx-xxxx</span></div>
+        </div>
+      </div>
+      <div class="detail-card">
+        <div class="dc-header"><span class="dc-icon">🧑‍💼</span><span class="dc-title">ข้อมูล Agent</span></div>
+        <div class="dc-body">
+          <div class="agent-block">
+            <div class="agent-av" style="background:linear-gradient(135deg,#2563eb,#7c3aed);">ส</div>
+            <div><div class="agent-name" id="d-agent-name">สมชาย กิตติ</div><div class="agent-level">Agent ID: <span id="d-agentid" style="font-family:'IBM Plex Mono',monospace;"></span></div></div>
+          </div>
+          <div class="info-row"><span class="info-label">งานที่ผ่านมา</span><span class="info-val">142 งาน</span></div>
+          <div class="info-row"><span class="info-label">อัตราอนุมัติ</span><span class="info-val" style="color:var(--green);">94.3%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-grid-2">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="detail-card">
+          <div class="dc-header"><span class="dc-icon">✦</span><span class="dc-title">AI Pre-screen Result</span></div>
+          <div class="dc-body"><div id="d-ai-section"></div></div>
+        </div>
+        <div class="detail-card">
+          <div class="dc-header"><span class="dc-icon">📁</span><span class="dc-title">เอกสารที่แนบมา</span></div>
+          <div class="dc-body" id="d-docs"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="detail-card">
+          <div class="dc-header"><span class="dc-icon">⏱</span><span class="dc-title">สถานะ SLA</span></div>
+          <div class="dc-body">
+            <div class="info-row"><span class="info-label">วันที่ส่งงาน</span><span class="info-val" id="d-sla-sent"></span></div>
+            <div class="info-row"><span class="info-label">SLA ครบกำหนด</span><span class="info-val" id="d-sla-due" style="font-family:'IBM Plex Mono',monospace;color:var(--accent);"></span></div>
+            <div class="info-row"><span class="info-label">สถานะ SLA</span><span class="info-val" id="d-slastatus"></span></div>
+            <div class="sla-progress-wrap">
+              <div class="sla-track"><div class="sla-fill" id="d-sla-fill" style="width:0%;background:var(--green);"></div></div>
+              <div class="sla-labels"><span id="sla-label-start"></span><span id="sla-label-end"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-card">
+          <div class="dc-header"><span class="dc-icon">📅</span><span class="dc-title">ประวัติการดำเนินงาน</span></div>
+          <div class="dc-body"><div class="timeline" id="d-timeline"></div></div>
+        </div>
+        <div class="detail-card" id="d-comment-card">
+          <div class="dc-header"><span class="dc-icon">💬</span><span class="dc-title">หมายเหตุ Admin</span></div>
+          <div class="dc-body">
+            <textarea class="comment-box" placeholder="เพิ่มหมายเหตุสำหรับงานนี้..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+              <button class="btn btn-assign" style="font-size:12px;padding:6px 14px;">💾 บันทึกหมายเหตุ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== HELPERS =====
+const MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+// จำลอง "ปัจจุบัน" = 18 เม.ย. 2566 14:32 (ค.ศ. 2023)
+const NOW = new Date(2023, 3, 18, 14, 32, 0);
+
+function parseDate(str) {
+  // "2566-04-15 13:05"
+  const [d, t] = str.split(' ');
+  const [y,m,dd] = d.split('-').map(Number);
+  const [hh,mm] = t.split(':').map(Number);
+  return new Date(y - 543, m - 1, dd, hh, mm, 0);
+}
+
+function addBizDays(startDate, days) {
+  const r = new Date(startDate);
+  let added = 0;
+  while (added < days) {
+    r.setDate(r.getDate() + 1);
+    if (r.getDay() !== 0 && r.getDay() !== 6) added++;
+  }
+  r.setHours(17, 0, 0, 0);
+  return r;
+}
+
+function thaiDate(d, withTime = false) {
+  const str = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()+543}`;
+  if (withTime) return str + ` · ${pad(d.getHours())}:${pad(d.getMinutes())} น.`;
+  return str;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function getSlaStatus(deadline) {
+  const ms = deadline - NOW;
+  const days = ms / 86400000;
+  if (ms < 0) return 'breach';
+  if (days <= 2) return 'warn';
+  return 'ok';
+}
+
+// ===== DATA =====
+const JOBS = [
+  // เรียงจากล่าสุดอยู่บนสุด (sent ใหม่ที่สุด → บน)
+  {
+    id:'FD-230418-008', sent:'2566-04-18 13:55',
+    workType:'งานใหม่', insType:'ชั้น 1', company:'วิริยะ',
+    aiVerdict:'อนุมัติ', aiScore:93,
+    status:'รอตรวจสอบ', agentId:'AGT-0031', agentName:'วิภา ทองดี',
+    approver:null, actionDate:null,
+    docs:['ok','ok','ok']
+  },
+  {
+    id:'FD-230418-007', sent:'2566-04-18 12:10',
+    workType:'ต่ออายุ', insType:'3+', company:'กรุงเทพประกันภัย',
+    aiVerdict:'ปฏิเสธ', aiScore:87,
+    status:'รอตรวจสอบ', agentId:'AGT-0089', agentName:'สุภาพร วงค์',
+    approver:null, actionDate:null,
+    docs:['ok','ok','missing']
+  },
+  {
+    id:'FD-230418-006', sent:'2566-04-18 09:30',
+    workType:'โอนโค้ด', insType:'2+', company:'ทิพยประกันภัย',
+    aiVerdict:'อนุมัติ', aiScore:96,
+    status:'รอตรวจสอบ', agentId:'AGT-0055', agentName:'อนันต์ วรรณา',
+    approver:null, actionDate:null,
+    docs:['ok','ok','ok']
+  },
+  {
+    id:'FD-230418-005', sent:'2566-04-18 08:20',
+    workType:'งานใหม่', insType:'พ.ร.บ.', company:'วิริยะ',
+    aiVerdict:'อนุมัติ', aiScore:99,
+    status:'รอตรวจสอบ', agentId:'AGT-0042', agentName:'สมชาย กิตติ',
+    approver:null, actionDate:null,
+    docs:['ok','ok','ok']
+  },
+  // งานเก่า — อนุมัติ/ปฏิเสธแล้ว บางอัน SLA เกิน
+  {
+    id:'FD-230415-004', sent:'2566-04-15 14:22',
+    workType:'ต่ออายุ', insType:'2+', company:'เอเชียประกัน',
+    aiVerdict:'อนุมัติ', aiScore:94,
+    status:'อนุมัติแล้ว',
+    agentId:'AGT-0042', agentName:'สมชาย กิตติ',
+    approver:{ name:'สมศรี วงศ์', color:'linear-gradient(135deg,#16a34a,#2563eb)', initial:'ส' },
+    actionDate:'2566-04-16 10:15',
+    docs:['ok','ok','ok']
+  },
+  {
+    id:'FD-230412-003', sent:'2566-04-08 09:05',
+    workType:'งานใหม่', insType:'ชั้น 1', company:'กรุงเทพประกันภัย',
+    aiVerdict:'ปฏิเสธ', aiScore:91,
+    status:'ปฏิเสธ',
+    agentId:'AGT-0017', agentName:'มาลี สุขสันต์',
+    approver:{ name:'อนันต์ สิริ', color:'linear-gradient(135deg,#ea580c,#dc2626)', initial:'อ' },
+    actionDate:'2566-04-09 11:40',
+    docs:['ok','missing','missing']
+  },
+  {
+    id:'FD-230410-002', sent:'2566-04-03 10:30',
+    workType:'โอนโค้ด', insType:'3+', company:'ทิพยประกันภัย',
+    aiVerdict:'อนุมัติ', aiScore:88,
+    status:'อนุมัติแล้ว',
+    agentId:'AGT-0031', agentName:'วิภา ทองดี',
+    approver:{ name:'มาลี จิตร', color:'linear-gradient(135deg,#7c3aed,#2563eb)', initial:'ม' },
+    actionDate:'2566-04-21 16:50', // อนุมัติหลัง SLA deadline → row นี้จะ breach
+    docs:['ok','ok','ok']
+  },
+  {
+    id:'FD-230401-001', sent:'2566-04-01 08:12',
+    workType:'งานใหม่', insType:'2+', company:'วิริยะ',
+    aiVerdict:'ปฏิเสธ', aiScore:89,
+    status:'ปฏิเสธ',
+    agentId:'AGT-0055', agentName:'อนันต์ วรรณา',
+    approver:{ name:'สมศรี วงศ์', color:'linear-gradient(135deg,#16a34a,#2563eb)', initial:'ส' },
+    actionDate:'2566-04-22 09:30', // ปฏิเสธหลัง SLA deadline → row นี้จะ breach
+    docs:['ok','missing','missing']
+  },
+];
+
+// ===== RENDER TABLE =====
+function renderTable() {
+  const tbody = document.getElementById('job-table-body');
+  let html = '';
+  JOBS.forEach(job => {
+    const sentDate = parseDate(job.sent);
+    const deadline = addBizDays(sentDate, 7);
+    const slaStatus = getSlaStatus(deadline);
+    const deadlineShort = `${thaiDate(deadline)} · 17:00 น.`;
+    const rowClass = slaStatus === 'breach' ? 'row-breach' : slaStatus === 'warn' ? 'row-warn' : 'row-ok';
+
+    // SLA status tag (ในตาราง "สถานะ SLA" column)
+    let slaBadge;
+    if (slaStatus === 'breach') slaBadge = `<span class="sla-tag sla-breach">🔴 เกิน SLA</span>`;
+    else if (slaStatus === 'warn') slaBadge = `<span class="sla-tag sla-warn">⚠ ใกล้ครบกำหนด</span>`;
+    else slaBadge = `<span class="sla-tag sla-ok">✓ อยู่ใน SLA</span>`;
+
+    const wbMap = {'งานใหม่':'b-new','โอนโค้ด':'b-transfer','ต่ออายุ':'b-renew'};
+    const insMap = {'ชั้น 1':'ins-1','2+':'ins-2','3+':'ins-3','พ.ร.บ.':'ins-prb'};
+    const aiClass = job.aiVerdict === 'อนุมัติ' ? 'ai-approve' : 'ai-reject';
+    const stMap = {'รอตรวจสอบ':'s-wait','อนุมัติแล้ว':'s-approve','ปฏิเสธ':'s-reject'};
+
+    const sentDisp = thaiDate(sentDate);
+    const sentTime = `${pad(sentDate.getHours())}:${pad(sentDate.getMinutes())} น.`;
+
+    let approverHtml = job.approver
+      ? `<div class="approver-cell"><div class="mini-avatar" style="background:${job.approver.color};">${job.approver.initial}</div><span class="approver-name">${job.approver.name}</span></div>`
+      : `<span class="no-approver">— ยังไม่มี</span>`;
+
+    let actionDateHtml = '—';
+    if (job.actionDate) {
+      const ad = parseDate(job.actionDate);
+      actionDateHtml = `<div class="date-main">${thaiDate(ad)}</div><div class="date-time">${pad(ad.getHours())}:${pad(ad.getMinutes())} น.</div>`;
+    }
+
+    html += `<tr class="${rowClass}" onclick="showDetail('${job.id}')">
+      <td><div class="date-main">${sentDisp}</div><div class="date-time">${sentTime}</div></td>
+      <td><span class="job-id">#${job.id}</span></td>
+      <td><span class="agent-id">${job.agentId}</span></td>
+      <td><span class="badge ${wbMap[job.workType]||'b-new'}">${job.workType}</span></td>
+      <td><span class="ins ${insMap[job.insType]||'ins-2'}">${job.insType}</span></td>
+      <td><span class="company-name">${job.company}</span></td>
+      <td><div class="ai-badge ${aiClass}"><span class="ai-spark">✦</span>${job.aiVerdict}<span class="ai-score">${job.aiScore}%</span></div></td>
+      <td><div class="sla-date-cell"><div class="sla-date-main">${thaiDate(deadline)}</div><div class="sla-date-sub">ก่อน 17:00 น.</div></div></td>
+      <td>${slaBadge}</td>
+      <td><div class="status-badge ${stMap[job.status]||'s-wait'}"><div class="sdot"></div>${job.status}</div></td>
+      <td>${approverHtml}</td>
+      <td>${actionDateHtml}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ===== DETAIL =====
+function showDetail(jobId) {
+  const job = JOBS.find(j => j.id === jobId);
+  if (!job) return;
+
+  const sentDate = parseDate(job.sent);
+  const deadline = addBizDays(sentDate, 7);
+  const slaStatus = getSlaStatus(deadline);
+
+  // Header
+  document.getElementById('d-jobid').textContent = '#' + job.id;
+  document.getElementById('detail-bc-id').textContent = '#' + job.id;
+  document.getElementById('detail-topbar-title').textContent = 'รายละเอียดงาน #' + job.id;
+  document.getElementById('d-num').textContent = '#' + job.id;
+  document.getElementById('d-agentid').textContent = job.agentId;
+  document.getElementById('d-agent-name').textContent = job.agentName;
+  document.getElementById('d-senddate').textContent = thaiDate(sentDate, true);
+  document.getElementById('d-company').textContent = job.company;
+
+  const wbMap = {'งานใหม่':'<span class="badge b-new">งานใหม่</span>','โอนโค้ด':'<span class="badge b-transfer">โอนโค้ด</span>','ต่ออายุ':'<span class="badge b-renew">ต่ออายุ</span>'};
+  document.getElementById('d-worktype').innerHTML = wbMap[job.workType] || job.workType;
+  const insMap = {'ชั้น 1':'<span class="ins ins-1">ชั้น 1</span>','2+':'<span class="ins ins-2">2+</span>','3+':'<span class="ins ins-3">3+</span>','พ.ร.บ.':'<span class="ins ins-prb">พ.ร.บ.</span>'};
+  document.getElementById('d-instype').innerHTML = insMap[job.insType] || job.insType;
+
+  // Meta
+  const stMap = {'รอตรวจสอบ':'<div class="status-badge s-wait"><div class="sdot"></div>รอตรวจสอบ</div>','อนุมัติแล้ว':'<div class="status-badge s-approve"><div class="sdot"></div>อนุมัติแล้ว</div>','ปฏิเสธ':'<div class="status-badge s-reject"><div class="sdot"></div>ปฏิเสธ</div>'};
+  const slaTagMap = {'breach':'<span class="sla-tag sla-breach">🔴 เกิน SLA</span>','warn':'<span class="sla-tag sla-warn">⚠ ใกล้ครบกำหนด</span>','ok':'<span class="sla-tag sla-ok">✓ อยู่ใน SLA</span>'};
+  document.getElementById('d-meta').innerHTML = (stMap[job.status]||'') + slaTagMap[slaStatus];
+
+  // store current job verdict for modal logic
+  window._currentJobId = job.id;
+  window._currentAiVerdict = job.aiVerdict;
+
+  // Actions
+  let actHtml = job.status === 'รอตรวจสอบ'
+    ? `<button class="btn btn-approve" onclick="handleAction('อนุมัติ')">✓ อนุมัติงานนี้</button><button class="btn btn-reject" onclick="handleAction('ปฏิเสธ')">✕ ปฏิเสธ</button><button class="btn btn-assign">👤 มอบหมาย</button>`
+    : `<button class="btn btn-assign">📄 ดูกรมธรรม์</button>`;
+  actHtml += `<button class="btn btn-back" onclick="goBack()">← กลับ</button>`;
+  document.getElementById('d-actions').innerHTML = actHtml;
+
+  // AI section
+  const isApprove = job.aiVerdict === 'อนุมัติ';
+  const aiClass = isApprove ? 'approve' : 'reject';
+  const aiReasons = isApprove
+    ? ['เอกสารครบถ้วนถูกต้องทุกฉบับ','ข้อมูลที่กรอกเข้ามาตรงตามเอกสารทุกช่อง','ข้อมูลรถและทะเบียนตรงกับระบบ','ชื่อผู้เอาประกันตรงกับบัตรประชาชน']
+    : ['เอกสารไม่ครบ — ขาดรูปถ่ายรถ','ข้อมูลทะเบียนไม่ตรงกับระบบขนส่ง','สำเนาเล่มทะเบียนไม่ชัดเจน อ่านตัวเลขไม่ได้'];
+  const fillColor = isApprove ? 'var(--green)' : 'var(--red)';
+  const emoji = isApprove ? '✅' : '❌';
+
+  const knowledgeBtn = !isApprove ? `
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--red-border);">
+      <div style="display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid var(--red-border);border-radius:8px;padding:12px 14px;">
+        <span style="font-size:18px;flex-shrink:0;">⚠️</span>
+        <div style="flex:1;">
+          <div style="font-size:12.5px;font-weight:700;color:var(--red);margin-bottom:3px;">คำแนะนำจาก AI</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+            ประเภทประกันภัยที่เลือก <strong style="color:var(--text);">(${job.insType})</strong> ไม่ถูกต้องกับรุ่นของรถที่ระบุไว้ กรุณาตรวจสอบเงื่อนไขความคุ้มครองให้ตรงกับประเภทรถก่อนส่งงานใหม่อีกครั้ง
+          </div>
+          <button onclick="showKnowledge()" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--red);color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;transition:all 0.15s;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='var(--red)'">
+            📖 ดูคู่มือเพิ่มเติม →
+          </button>
+        </div>
+      </div>
+    </div>` : '';
+
+  document.getElementById('d-ai-section').className = `ai-section ai-${aiClass}-section`;
+  document.getElementById('d-ai-section').innerHTML = `
+    <div class="ai-verdict">${emoji} AI แนะนำ: <strong>${job.aiVerdict}</strong></div>
+    <ul class="ai-reason-list">${aiReasons.map(r=>'<li>'+r+'</li>').join('')}</ul>
+    <div class="confidence-bar">
+      <div class="conf-label"><span>Confidence Score</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:700;">${job.aiScore}%</span></div>
+      <div class="conf-track"><div class="conf-fill" style="width:0%;background:${fillColor};" id="conf-fill-bar"></div></div>
+    </div>
+    ${knowledgeBtn}`;
+  setTimeout(()=>{ const b=document.getElementById('conf-fill-bar'); if(b) b.style.width=job.aiScore+'%'; },200);
+
+  // Documents
+  const docDefs = [
+    { name:'บัตรประชาชน', file:'ID_card.jpg · 1.2 MB' },
+    { name:'สำเนาทะเบียนรถ', file:'reg_book.jpg · 0.8 MB' },
+    { name:'รูปถ่ายรถ (ตรวจสภาพ)', file:'car_photo.zip · —' }
+  ];
+  const docIcons = ['🪪','📘','📷'];
+  let docsHtml = '<div class="doc-list">';
+  job.docs.forEach((s,i) => {
+    const ok = s === 'ok';
+    docsHtml += `<div class="doc-item"><span class="doc-icon">${docIcons[i]}</span><div class="doc-info"><div class="doc-name">${docDefs[i].name}</div><div class="doc-size">${docDefs[i].file}</div></div><span class="doc-status ${ok?'ds-ok':'ds-missing'}">${ok?'✓ อัปโหลดแล้ว':'⚠ ยังไม่ได้อัปโหลด'}</span></div>`;
+  });
+  docsHtml += '</div>';
+  document.getElementById('d-docs').innerHTML = docsHtml;
+
+  // SLA
+  document.getElementById('d-sla-sent').textContent = thaiDate(sentDate, true);
+  document.getElementById('d-sla-due').textContent = `${thaiDate(deadline)} · 17:00 น.`;
+  const slaStatusLabel = {'breach':'<span class="sla-tag sla-breach">🔴 เกิน SLA</span>','warn':'<span class="sla-tag sla-warn">⚠ ใกล้ครบกำหนด</span>','ok':'<span class="sla-tag sla-ok">✓ อยู่ใน SLA</span>'};
+  document.getElementById('d-slastatus').innerHTML = slaStatusLabel[slaStatus];
+  const totalMs = deadline - sentDate;
+  const usedMs = NOW - sentDate;
+  const pct = Math.min(Math.max((usedMs/totalMs)*100,0),100);
+  const fillCol = slaStatus==='breach'?'var(--red)':slaStatus==='warn'?'var(--yellow)':'var(--green)';
+  const slaFill = document.getElementById('d-sla-fill');
+  slaFill.style.width='0%'; slaFill.style.background=fillCol;
+  document.getElementById('sla-label-start').textContent = thaiDate(sentDate);
+  document.getElementById('sla-label-end').textContent = thaiDate(deadline) + ' (deadline)';
+  setTimeout(()=>{ slaFill.style.transition='width 0.8s ease'; slaFill.style.width=pct+'%'; },100);
+
+  // Timeline
+  const aiTime = new Date(sentDate); aiTime.setMinutes(aiTime.getMinutes()+1);
+  let tlHtml = `
+    <div class="tl-item"><div class="tl-left"><div class="tl-dot2" style="background:var(--accent);"></div><div class="tl-line2"></div></div><div class="tl-content"><div class="tl-title2">Agent ส่งงานเข้าระบบ</div><div class="tl-sub2">${job.agentId} · ${job.agentName}</div><div class="tl-time">${thaiDate(sentDate,true)}</div></div></div>
+    <div class="tl-item"><div class="tl-left"><div class="tl-dot2" style="background:var(--green);"></div><div class="tl-line2"></div></div><div class="tl-content"><div class="tl-title2">AI วิเคราะห์เสร็จสิ้น</div><div class="tl-sub2">แนะนำ: ${job.aiVerdict} (${job.aiScore}%)</div><div class="tl-time">${thaiDate(aiTime,true)}</div></div></div>
+    <div class="tl-item"><div class="tl-left"><div class="tl-dot2" style="background:var(--yellow);"></div><div class="tl-line2"></div></div><div class="tl-content"><div class="tl-title2">งานถูกส่งให้ Admin ตรวจสอบ</div><div class="tl-sub2">Team A Queue</div><div class="tl-time">${thaiDate(aiTime,true)}</div></div></div>`;
+
+  if (job.status === 'รอตรวจสอบ') {
+    tlHtml += `<div class="tl-item"><div class="tl-left"><div class="tl-dot2" style="background:var(--text-dim);"></div></div><div class="tl-content"><div class="tl-title2" style="color:var(--text-dim);">รอการอนุมัติจาก Admin</div><div class="tl-time" style="color:var(--text-dim);">— รอดำเนินการ —</div></div></div>`;
+  } else {
+    const ad = parseDate(job.actionDate);
+    const actionLabel = job.status === 'อนุมัติแล้ว' ? 'อนุมัติงานเรียบร้อย' : 'ปฏิเสธงาน';
+    const dotColor = job.status === 'อนุมัติแล้ว' ? 'var(--green)' : 'var(--red)';
+    tlHtml += `<div class="tl-item"><div class="tl-left"><div class="tl-dot2" style="background:${dotColor};"></div></div><div class="tl-content"><div class="tl-title2">${actionLabel}</div><div class="tl-sub2">โดย: ${job.approver.name}</div><div class="tl-time">${thaiDate(ad,true)}</div></div></div>`;
+  }
+  document.getElementById('d-timeline').innerHTML = tlHtml;
+
+  // Switch page
+  document.getElementById('dashboard-page').classList.remove('active');
+  document.getElementById('detail-page').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function goBack() {
+  document.getElementById('detail-page').classList.remove('active');
+  document.getElementById('dashboard-page').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function showKnowledge() {
+  document.getElementById('detail-page').classList.remove('active');
+  document.getElementById('knowledge-page').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function goBackToDetail() {
+  document.getElementById('knowledge-page').classList.remove('active');
+  document.getElementById('detail-page').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ===== MODAL LOGIC =====
+let _pendingAction = null; // 'อนุมัติ' | 'ปฏิเสธ'
+
+function handleAction(userAction) {
+  _pendingAction = userAction;
+  const aiVerdict = window._currentAiVerdict; // 'อนุมัติ' | 'ปฏิเสธ'
+  const isConflict = userAction !== aiVerdict;
+
+  if (isConflict) {
+    // ตัดสินใจตรงข้าม AI → override modal
+    const aiLabel = aiVerdict === 'อนุมัติ'
+      ? '<span style="color:var(--green);font-weight:700;">✅ AI แนะนำ: อนุมัติ</span>'
+      : '<span style="color:var(--red);font-weight:700;">❌ AI แนะนำ: ปฏิเสธ</span>';
+    const userLabel = userAction === 'อนุมัติ'
+      ? '<span style="color:var(--green);">✓ คุณเลือก: อนุมัติ</span>'
+      : '<span style="color:var(--red);">✕ คุณเลือก: ปฏิเสธ</span>';
+    document.getElementById('modal-ai-verdict-label').innerHTML = aiLabel;
+    document.getElementById('modal-user-action-label').innerHTML = userLabel;
+
+    // reset textarea + error
+    document.getElementById('override-reason-text').value = '';
+    document.getElementById('override-reason-text').classList.remove('error');
+    document.getElementById('override-error').classList.remove('show');
+
+    // confirm button style
+    const confirmBtn = document.getElementById('modal-override-confirm-btn');
+    if (userAction === 'อนุมัติ') {
+      confirmBtn.textContent = '✓ ยืนยัน — อนุมัติ';
+      confirmBtn.className = 'modal-btn modal-btn-primary-approve';
+    } else {
+      confirmBtn.textContent = '✕ ยืนยัน — ปฏิเสธ';
+      confirmBtn.className = 'modal-btn modal-btn-primary-reject';
+    }
+    openModal('modal-override');
+  } else {
+    // ตัดสินใจตรงตาม AI → simple confirm modal
+    const isApprove = userAction === 'อนุมัติ';
+    const iconWrap = document.getElementById('modal-confirm-icon-wrap');
+    const desc = document.getElementById('modal-confirm-desc');
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+
+    if (isApprove) {
+      iconWrap.textContent = '✅';
+      iconWrap.style.background = 'var(--green-bg)';
+      desc.innerHTML = `คุณแน่ใจหรือไม่ที่จะ <strong style="color:var(--green);">อนุมัติ</strong> งานนี้<br><span style="font-size:12px;color:var(--text-muted);">เมื่อยืนยันแล้วจะไม่สามารถแก้ไขได้</span>`;
+      confirmBtn.textContent = '✓ ยืนยัน — อนุมัติ';
+      confirmBtn.className = 'modal-btn modal-btn-primary-approve';
+    } else {
+      iconWrap.textContent = '❌';
+      iconWrap.style.background = 'var(--red-bg)';
+      desc.innerHTML = `คุณแน่ใจหรือไม่ที่จะ <strong style="color:var(--red);">ปฏิเสธ</strong> งานนี้<br><span style="font-size:12px;color:var(--text-muted);">เมื่อยืนยันแล้วจะไม่สามารถแก้ไขได้</span>`;
+      confirmBtn.textContent = '✕ ยืนยัน — ปฏิเสธ';
+      confirmBtn.className = 'modal-btn modal-btn-primary-reject';
+    }
+    openModal('modal-confirm');
+  }
+}
+
+function confirmOverride() {
+  const text = document.getElementById('override-reason-text').value.trim();
+  if (!text) {
+    document.getElementById('override-reason-text').classList.add('error');
+    document.getElementById('override-error').classList.add('show');
+    return;
+  }
+  closeModal('modal-override');
+  executeAction();
+}
+
+function clearOverrideError() {
+  document.getElementById('override-reason-text').classList.remove('error');
+  document.getElementById('override-error').classList.remove('show');
+}
+
+function executeAction() {
+  closeModal('modal-confirm');
+  closeModal('modal-override');
+  // Prototype: แสดง toast แจ้งผล
+  showToast(_pendingAction === 'อนุมัติ' ? '✅ อนุมัติงานเรียบร้อยแล้ว' : '❌ ปฏิเสธงานเรียบร้อยแล้ว', _pendingAction === 'อนุมัติ' ? 'green' : 'red');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal when clicking overlay
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+
+// ===== TOAST =====
+function showToast(msg, type) {
+  const existing = document.getElementById('fd-toast');
+  if (existing) existing.remove();
+  const colors = { green: '#16a34a', red: '#dc2626' };
+  const toast = document.createElement('div');
+  toast.id = 'fd-toast';
+  toast.innerHTML = msg;
+  toast.style.cssText = `
+    position:fixed; bottom:28px; right:28px; z-index:99999;
+    background:${colors[type]||'#1a2332'}; color:white;
+    padding:13px 22px; border-radius:10px; font-size:13.5px; font-weight:600;
+    box-shadow:0 8px 24px rgba(0,0,0,0.18); font-family:'Sarabun',sans-serif;
+    animation:toastIn 0.3s ease; pointer-events:none;
+  `;
+  const style = document.createElement('style');
+  style.textContent = '@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}';
+  document.head.appendChild(style);
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+renderTable();
+
+document.querySelectorAll('.tab-pill').forEach(tab => {
+  tab.addEventListener('click', function() {
+    this.closest('.tabs-group').querySelectorAll('.tab-pill').forEach(t=>t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+
+<!-- ===== MODAL: OVERRIDE REASON (ตัดสินใจตรงข้าม AI) ===== -->
+<div class="modal-overlay" id="modal-override">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrap modal-icon-warn">⚠️</div>
+        <div class="modal-title">กรุณาระบุข้อมูลเพิ่มเติม<br>เพื่อดำเนินการต่อ</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-override')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-warn-banner">
+        <span style="font-size:15px;flex-shrink:0;">🤖</span>
+        <div>ระบบตรวจพบว่าการตัดสินใจของคุณ<strong>แตกต่างจาก AI</strong> กรุณาระบุเหตุผลเพื่อยืนยันการดำเนินการ</div>
+      </div>
+      <div class="modal-conflict-row">
+        <span class="conflict-ai" id="modal-ai-verdict-label"></span>
+        <span class="conflict-arrow">→</span>
+        <span class="conflict-user" id="modal-user-action-label"></span>
+      </div>
+      <div class="modal-label">รายละเอียดเพิ่มเติม <span>*</span></div>
+      <textarea
+        class="modal-textarea"
+        id="override-reason-text"
+        placeholder="ระบุเหตุผลที่ตัดสินใจแตกต่างจาก AI เช่น ตรวจสอบเอกสารจริงแล้วพบว่าครบถ้วน / ลูกค้าได้รับการยกเว้นพิเศษ..."
+        oninput="clearOverrideError()"
+      ></textarea>
+      <div class="modal-error-msg" id="override-error">⚠ กรุณาระบุเหตุผลก่อนยืนยัน</div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal('modal-override')">ยกเลิก</button>
+      <button class="modal-btn" id="modal-override-confirm-btn" onclick="confirmOverride()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: SIMPLE CONFIRM (ตัดสินใจตรงตาม AI) ===== -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrap modal-icon-confirm" id="modal-confirm-icon-wrap"></div>
+        <div class="modal-title">ยืนยันการดำเนินการ</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc" id="modal-confirm-desc"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal('modal-confirm')">ยกเลิก</button>
+      <button class="modal-btn" id="modal-confirm-btn" onclick="executeAction()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: KNOWLEDGE PORTAL -->
+<div id="knowledge-page" class="page">
+  <style>
+    .kb-hero { background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%); padding:36px 28px 32px; color:white; }
+    .kb-hero-title { font-size:22px; font-weight:700; margin-bottom:6px; }
+    .kb-hero-sub { font-size:13px; opacity:0.8; }
+    .kb-back { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:6px; color:white; font-size:12.5px; font-weight:600; cursor:pointer; margin-bottom:18px; transition:all 0.15s; font-family:'Sarabun',sans-serif; }
+    .kb-back:hover { background:rgba(255,255,255,0.25); }
+    .kb-search-bar { display:flex; gap:10px; margin-top:18px; }
+    .kb-search { flex:1; max-width:460px; padding:10px 16px; border-radius:8px; border:none; font-size:13px; font-family:'Sarabun',sans-serif; outline:none; }
+    .kb-content { padding:24px 28px; max-width:1200px; margin:0 auto; }
+    .kb-section-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:8px; }
+    .kb-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; }
+    .kb-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm); cursor:pointer; transition:all 0.18s; position:relative; overflow:hidden; }
+    .kb-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); border-color:var(--accent); }
+    .kb-card-icon { font-size:26px; margin-bottom:10px; }
+    .kb-card-title { font-size:13.5px; font-weight:700; color:var(--text); margin-bottom:4px; }
+    .kb-card-desc { font-size:12px; color:var(--text-muted); line-height:1.6; }
+    .kb-card-tag { position:absolute; top:14px; right:14px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+    .tag-updated { background:#fef3c7; color:#92400e; }
+    .tag-new { background:var(--accent-light); color:var(--accent); }
+    .tag-popular { background:var(--green-bg); color:var(--green); }
+
+    /* Highlight card — ประเภทประกันภัย */
+    .kb-card-highlight { border:2px solid var(--red); background:var(--red-bg); }
+    .kb-card-highlight:hover { border-color:var(--red); }
+    .kb-card-highlight .kb-card-title { color:var(--red); }
+
+    /* Article panel */
+    .kb-article { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:14px; }
+    .kb-article-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .kb-article-title { font-size:13px; font-weight:700; color:var(--text); }
+    .kb-article-body { padding:0; }
+    .kb-article-row { padding:12px 18px; border-bottom:1px solid var(--border-light); display:flex; align-items:flex-start; gap:12px; transition:background 0.12s; cursor:pointer; }
+    .kb-article-row:hover { background:var(--accent-light); }
+    .kb-article-row:last-child { border-bottom:none; }
+    .kb-art-icon { font-size:16px; flex-shrink:0; margin-top:2px; }
+    .kb-art-title { font-size:13px; font-weight:600; color:var(--accent); }
+    .kb-art-desc { font-size:11.5px; color:var(--text-muted); margin-top:2px; line-height:1.5; }
+    .kb-art-badge { margin-left:auto; flex-shrink:0; font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px; }
+
+    /* Inline article expanded */
+    .kb-expanded { background:var(--white); border:1px solid var(--red-border); border-radius:var(--radius); padding:20px 22px; margin-bottom:14px; box-shadow:0 4px 16px rgba(220,38,38,0.08); }
+    .kb-exp-title { font-size:15px; font-weight:700; color:var(--red); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+    .kb-exp-body { font-size:13px; color:var(--text); line-height:1.8; }
+    .kb-table { width:100%; border-collapse:collapse; margin-top:14px; font-size:12.5px; }
+    .kb-table th { background:var(--bg); padding:8px 12px; text-align:left; font-weight:700; color:var(--text-muted); border-bottom:2px solid var(--border); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+    .kb-table td { padding:10px 12px; border-bottom:1px solid var(--border-light); vertical-align:middle; }
+    .kb-table tr:last-child td { border-bottom:none; }
+    .kb-table tr:hover td { background:var(--accent-light); }
+    .kb-note { background:var(--yellow-bg); border:1px solid var(--yellow-border); border-radius:8px; padding:12px 16px; margin-top:14px; font-size:12.5px; color:var(--yellow); display:flex; gap:10px; align-items:flex-start; }
+  </style>
+
+  <nav class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><div class="logo-mark">🛡</div><span class="logo-text">FairDee</span></div>
+      <div class="topbar-divider"></div>
+      <span class="topbar-title">Knowledge Portal — คู่มือการใช้งาน</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-notif">🔔<div class="notif-dot"></div></div>
+      <div class="avatar-chip">อ</div>
+      <div class="topbar-settings">⚙ ตั้งค่า</div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="kb-hero">
+    <button class="kb-back" onclick="goBackToDetail()">← กลับหน้างาน</button>
+    <div class="kb-hero-title">📖 FairDee Knowledge Portal</div>
+    <div class="kb-hero-sub">ศูนย์รวมคู่มือ ข้อกำหนด และแนวทางการรับประกันภัย สำหรับ Admin และ Agent</div>
+    <div class="kb-search-bar">
+      <input class="kb-search" type="text" placeholder="🔍  ค้นหาหัวข้อ เช่น ประเภทประกัน, เงื่อนไขรถ, การส่งเอกสาร...">
+    </div>
+  </div>
+
+  <div class="kb-content">
+
+    <!-- Alert banner — ลิงก์มาจาก AI reject -->
+    <div style="background:var(--red-bg);border:1.5px solid var(--red-border);border-radius:10px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:flex-start;gap:12px;">
+      <span style="font-size:20px;flex-shrink:0;">⚠️</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:3px;">AI แนะนำให้ตรวจสอบ — ประเภทประกันภัยไม่ตรงกับรุ่นรถ</div>
+        <div style="font-size:12.5px;color:var(--text-muted);">กรุณาศึกษาตารางเงื่อนไขประเภทประกันที่รองรับตามประเภทรถด้านล่าง ก่อนส่งงานใหม่อีกครั้ง</div>
+      </div>
+    </div>
+
+    <!-- Highlighted article -->
+    <div class="kb-section-title">🔴 บทความที่เกี่ยวข้องกับงานนี้</div>
+    <div class="kb-expanded">
+      <div class="kb-exp-title">📋 เงื่อนไขประเภทประกันภัยที่รองรับตามประเภทและรุ่นรถ</div>
+      <div class="kb-exp-body">
+        ประเภทประกันภัยที่สามารถเลือกได้ขึ้นอยู่กับ <strong>ปีรถ</strong>, <strong>ประเภทรถ</strong> และ <strong>ราคาเบาเริ่มต้น</strong> ของแต่ละบริษัทประกัน โดยมีข้อกำหนดหลักดังนี้:
+      </div>
+      <table class="kb-table">
+        <thead>
+          <tr>
+            <th>ประเภทประกัน</th>
+            <th>อายุรถที่รองรับ</th>
+            <th>ประเภทรถ</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="ins ins-1" style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;font-family:'IBM Plex Mono',monospace;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);">ชั้น 1</span></td>
+            <td>ไม่เกิน 10 ปี</td>
+            <td>รถยนต์นั่งส่วนบุคคล, กระบะ 4 ประตู</td>
+            <td>ต้องตรวจสภาพรถก่อนทุกกรณี</td>
+          </tr>
+          <tr style="background:#fffbeb;">
+            <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;font-family:'IBM Plex Mono',monospace;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);">2+</span></td>
+            <td>ไม่เกิน 15 ปี</td>
+            <td>รถยนต์ทุกประเภท ยกเว้นรถบรรทุก</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;font-family:'IBM Plex Mono',monospace;background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe;">3+</span></td>
+            <td>ไม่จำกัดอายุ</td>
+            <td>รถยนต์ทุกประเภท</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;font-family:'IBM Plex Mono',monospace;background:var(--purple-bg);color:var(--purple);border:1px solid #ddd6fe;">พ.ร.บ.</span></td>
+            <td>ไม่จำกัดอายุ</td>
+            <td>รถยนต์ทุกประเภท</td>
+            <td>บังคับตามกฎหมาย ต้องมีทุกคัน</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="kb-note">
+        <span style="font-size:16px;flex-shrink:0;">💡</span>
+        <div><strong>ข้อควรระวัง:</strong> รถยนต์อายุเกิน 10 ปี <strong>ไม่สามารถทำประกันชั้น 1 ได้</strong> หากพบว่าข้อมูลปีรถไม่ตรงกับประเภทประกันที่เลือก ระบบ AI จะทำการปฏิเสธงานอัตโนมัติ กรุณาแนะนำ Agent ให้เลือกประเภท 2+ หรือ 3+ แทน</div>
+      </div>
+    </div>
+
+    <!-- All articles -->
+    <div class="kb-section-title" style="margin-top:8px;">📚 คู่มือทั้งหมด</div>
+    <div class="kb-grid">
+      <div class="kb-card kb-card-highlight">
+        <span class="kb-card-tag tag-updated">อัปเดตล่าสุด</span>
+        <div class="kb-card-icon">🚗</div>
+        <div class="kb-card-title">ประเภทประกันภัยและเงื่อนไขรถ</div>
+        <div class="kb-card-desc">ตารางเงื่อนไขอายุรถ ประเภทรถ และประกันที่รองรับ พร้อมตัวอย่างเคสที่พบบ่อย</div>
+      </div>
+      <div class="kb-card">
+        <span class="kb-card-tag tag-popular">ยอดนิยม</span>
+        <div class="kb-card-icon">📄</div>
+        <div class="kb-card-title">เอกสารที่ต้องใช้ในการส่งงาน</div>
+        <div class="kb-card-desc">รายการเอกสารครบถ้วนสำหรับแต่ละประเภทงาน งานใหม่, ต่ออายุ, โอนโค้ด</div>
+      </div>
+      <div class="kb-card">
+        <div class="kb-card-icon">🏢</div>
+        <div class="kb-card-title">Package และเงื่อนไขแต่ละบริษัท</div>
+        <div class="kb-card-desc">รายละเอียด Package ของบริษัทประกันพาร์ทเนอร์ทั้ง 8 บริษัท</div>
+      </div>
+      <div class="kb-card">
+        <span class="kb-card-tag tag-new">ใหม่</span>
+        <div class="kb-card-icon">💳</div>
+        <div class="kb-card-title">การผ่อนชำระและเงื่อนไขเครดิต</div>
+        <div class="kb-card-desc">วิธีการผ่อน 3–12 งวด การยืนยันตัวตน และเงื่อนไขสำหรับแต่ละระดับ Agent</div>
+      </div>
+      <div class="kb-card">
+        <div class="kb-card-icon">🔄</div>
+        <div class="kb-card-title">ขั้นตอนงานโอนโค้ด</div>
+        <div class="kb-card-desc">ขั้นตอนและเอกสารที่ต้องใช้เมื่อต้องการโอนย้ายกรมธรรม์ระหว่าง Agent</div>
+      </div>
+      <div class="kb-card">
+        <div class="kb-card-icon">⏱</div>
+        <div class="kb-card-title">นโยบาย SLA และการยกเลิกกรมธรรม์</div>
+        <div class="kb-card-desc">ข้อกำหนด SLA 7 วันทำการ ขั้นตอนการยกเลิก และการคืนเครดิต</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
